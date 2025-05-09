@@ -11,7 +11,6 @@ import (
 	"github.com/songvi/robo/generator/user"
 	"github.com/songvi/robo/generator/workspace"
 	"github.com/songvi/robo/job"
-	"github.com/songvi/robo/worker"
 )
 
 // Store defines the CRUD interface for all models
@@ -174,8 +173,6 @@ func ProvideStore(lc fx.Lifecycle, db *gorm.DB) Store {
 				&workspace.Workspace{},
 				&dispatcher.Cycle{},
 				&dispatcher.Strategy{},
-				&worker.Task{},
-				&worker.TaskResult{},
 			)
 		},
 		OnStop: func(ctx context.Context) error {

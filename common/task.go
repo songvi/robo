@@ -1,4 +1,4 @@
-package worker
+package common
 
 type Task struct {
 	// The name of the task

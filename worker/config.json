@@ -1,0 +1,5 @@
+{
+    "broker": "nats://localhost:4222",
+    "generator": {},
+    "dsn": ""
+  }
