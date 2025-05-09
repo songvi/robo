@@ -7,6 +7,7 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"image/png"
+	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -30,7 +31,7 @@ func NewFileContentGenerator(repositoryPath string) *FileContentGenerator {
 	}
 }
 
-// Generate a rich sentence in the specified language, defaulting to English
+// GenerateSentence generates a rich sentence in the specified language, defaulting to English
 func generateSentence(lang string) string {
 	type sentencePattern struct {
 		subjects   []string
@@ -39,7 +40,7 @@ func generateSentence(lang string) string {
 		adjectives []string
 		adverbs    []string
 		connectors []string
-		isSOV      bool // Subject-Object-Verb (e.g., Korean, Japanese) vs Subject-Verb-Object
+		isSOV      bool
 	}
 
 	patterns := map[string]sentencePattern{
@@ -101,15 +102,13 @@ func generateSentence(lang string) string {
 
 	pattern, exists := patterns[lang]
 	if !exists {
-		pattern = patterns["en"] // Default to English
+		pattern = patterns["en"]
 	}
 
-	// Randomly decide sentence complexity
 	hasAdjective := rand.Float32() < 0.7
 	hasAdverb := rand.Float32() < 0.6
 	hasConnector := rand.Float32() < 0.4
 
-	// First clause
 	subject := pattern.subjects[rand.Intn(len(pattern.subjects))]
 	verb := pattern.verbs[rand.Intn(len(pattern.verbs))]
 	object := pattern.objects[rand.Intn(len(pattern.objects))]
@@ -134,7 +133,6 @@ func generateSentence(lang string) string {
 		}
 	}
 
-	// Add a second clause with connector
 	if hasConnector {
 		connector := pattern.connectors[rand.Intn(len(pattern.connectors))]
 		subject2 := pattern.subjects[rand.Intn(len(pattern.subjects))]
@@ -155,7 +153,6 @@ func generateSentence(lang string) string {
 		sentence += fmt.Sprintf(" %s %s", connector, clause)
 	}
 
-	// Add punctuation
 	if lang == "cn" || lang == "jp" {
 		sentence += "。"
 	} else if lang == "ar" {
@@ -172,27 +169,25 @@ func (g *FileContentGenerator) GenerateContent(file *File, lang string) error {
 	rand.Seed(time.Now().UnixNano())
 
 	// Create the full file path in the repository
-	fullPath := filepath.Join(g.RepositoryPath, file.FilePath)
+	fullPath := filepath.Join(g.RepositoryPath, file.Name+"."+file.FileExtension)
 	if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %v", err)
 	}
 
 	switch strings.ToLower(file.FileExtension) {
 	case "txt":
-		// Generate text content
 		var content strings.Builder
 		targetSize := file.FileSize
 		if targetSize < 1024 {
-			targetSize = 1024 // Minimum 1KB
+			targetSize = 1024
 		}
 		if targetSize > 5*1024*1024 {
-			targetSize = 5 * 1024 * 1024 // Max 5MB
+			targetSize = 5 * 1024 * 1024
 		}
 
 		for content.Len() < targetSize {
 			content.WriteString(generateSentence(lang) + "\n")
 		}
-		// Truncate to exact size
 		contentStr := content.String()
 		if len(contentStr) > targetSize {
 			contentStr = contentStr[:targetSize]
@@ -206,9 +201,19 @@ func (g *FileContentGenerator) GenerateContent(file *File, lang string) error {
 	case "pdf":
 		// Generate PDF with non-Latin text
 		pdf := gofpdf.New("P", "mm", "A4", "")
-		pdf.AddUTF8Font("NotoSans", "", "NotoSans-Regular.ttf") // Assumes NotoSans-Regular.ttf in working directory
+		const fontFile = "/tmp/NotoSans-Regular.ttf"
+		if _, err := os.Stat(fontFile); os.IsNotExist(err) {
+			log.Printf("Font file %s not found", fontFile)
+			return fmt.Errorf("font file %s not found", fontFile)
+		}
+		pdf.AddUTF8Font("NotoSans", "", fontFile)
 		pdf.AddPage()
 		pdf.SetFont("NotoSans", "", 12)
+		if pdf.Err() {
+			log.Printf("Failed to set font for PDF: %v", pdf.Error())
+			return fmt.Errorf("failed to set font for PDF: %v", pdf.Error())
+		}
+
 		targetSize := file.FileSize
 		if targetSize < 1024 {
 			targetSize = 1024
@@ -219,15 +224,19 @@ func (g *FileContentGenerator) GenerateContent(file *File, lang string) error {
 
 		for i := 0; pdf.GetY() < 270 && i*len(generateSentence(lang)) < targetSize; i++ {
 			pdf.Write(5, generateSentence(lang)+"\n")
+			if pdf.Err() {
+				log.Printf("PDF write error: %v", pdf.Error())
+				return fmt.Errorf("failed to write to PDF: %v", pdf.Error())
+			}
 		}
 
 		if err := pdf.OutputFileAndClose(fullPath); err != nil {
+			log.Printf("Failed to save PDF file: %v", err)
 			return fmt.Errorf("failed to write pdf file: %v", err)
 		}
 		file.FileContent = "Generated PDF content"
 
 	case "docx":
-		// Generate DOCX with non-Latin text
 		doc := document.New()
 		targetSize := file.FileSize
 		if targetSize < 1024 {
@@ -248,7 +257,6 @@ func (g *FileContentGenerator) GenerateContent(file *File, lang string) error {
 		file.FileContent = "Generated DOCX content"
 
 	case "xlsx":
-		// Generate XLSX with non-Latin text
 		f := excelize.NewFile()
 		targetSize := file.FileSize
 		if targetSize < 1024 {
@@ -269,7 +277,6 @@ func (g *FileContentGenerator) GenerateContent(file *File, lang string) error {
 		file.FileContent = "Generated XLSX content"
 
 	case "jpeg", "png":
-		// Generate a simple image
 		img := image.NewRGBA(image.Rect(0, 0, 100, 100))
 		draw.Draw(img, img.Bounds(), &image.Uniform{color.RGBA{255, 0, 0, 255}}, image.Point{}, draw.Src)
 
@@ -297,7 +304,6 @@ func (g *FileContentGenerator) GenerateContent(file *File, lang string) error {
 			}
 		}
 
-		// Pad file to reach target size
 		f.Seek(0, 2)
 		currentSize, _ := f.Seek(0, 1)
 		if int(currentSize) < targetSize {
@@ -308,17 +314,16 @@ func (g *FileContentGenerator) GenerateContent(file *File, lang string) error {
 		file.FileContent = "Generated image content"
 
 	case "bin":
-		// Generate binary content
 		targetSize := file.FileSize
 		if targetSize < 1024*1024 {
-			targetSize = 1024 * 1024 // Minimum 1MB
+			targetSize = 1024 * 1024
 		}
 		if targetSize > 1024*1024*1024 {
-			targetSize = 1024 * 1024 * 1024 // Max 1GB
+			targetSize = 1024 * 1024 * 1024
 		}
 
 		data := make([]byte, targetSize)
-		rand.Read(data) // Non-null random bytes
+		rand.Read(data)
 
 		if err := os.WriteFile(fullPath, data, 0644); err != nil {
 			return fmt.Errorf("failed to write bin file: %v", err)
@@ -331,27 +336,3 @@ func (g *FileContentGenerator) GenerateContent(file *File, lang string) error {
 
 	return nil
 }
-
-// func main() {
-// 	// Initialize generator
-// 	generator := NewFileContentGenerator("./generated_files")
-
-// 	// Example file
-// 	file := &File{
-// 		Name:          "하-별-꽃-영",
-// 		Description:   "Generated file in kn",
-// 		FileExtension: "docx",
-// 		FileSize:      1024 * 1024, // 1MB
-// 		FilePath:      "/강산/하-별-꽃-영.docx",
-// 	}
-
-// 	// Generate content
-// 	if err := generator.GenerateContent(file, "kn"); err != nil {
-// 		fmt.Printf("Error generating content: %v\n", err)
-// 		return
-// 	}
-
-// 	// Print file info
-// 	fileJSON, _ := json.MarshalIndent(file, "", "  ")
-// 	fmt.Printf("Generated file: %s\n", string(fileJSON))
-// }

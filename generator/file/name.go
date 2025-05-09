@@ -117,7 +117,7 @@ func contains(slice []string, item string) bool {
 }
 
 // Generate a filename with 2 to 5 words, all from one randomly chosen language
-func generateFilename(langs []string) string {
+func GenerateFilename(langs []string) string {
 	rand.Seed(time.Now().UnixNano())
 
 	// Randomly choose one language from the provided list

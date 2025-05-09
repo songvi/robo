@@ -8,4 +8,6 @@ type User struct {
 	UserName string `json:"username" yaml:"username"`
 	// Language
 	Language string `json:"language" yaml:"language"`
+
+	UUID string `json:"uuid" yaml:"uuid"`
 }

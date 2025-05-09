@@ -11,6 +11,6 @@ type File struct {
 	FileSize int `json:"file_size" yaml:"file_size"`
 	// The file content
 	FileContent string `json:"file_content" yaml:"file_content"`
-	// The file path
-	FilePath string `json:"file_path" yaml:"file_path"`
+	// // The file path
+	// FilePath string `json:"file_path" yaml:"file_path"`
 }
