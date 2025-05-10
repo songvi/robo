@@ -3,7 +3,8 @@ package job
 import "encoding/json"
 
 type Job struct {
-	UUID string `json:"uuid" yaml:"uuid"`
+	UUID     string `json:"uuid" yaml:"uuid"`
+	WorkerID string `json:"worker_id" yaml:"worker_id"`
 	// The name of the job
 	Name       string          `json:"name" yaml:"name"`
 	InputData  json.RawMessage `json:"input_data" yaml:"input_data"`

@@ -18,3 +18,7 @@ type Cycle struct {
 	// The status of the cycle
 	Status string `json:"status" yaml:"status"`
 }
+
+type Session struct {
+	UserID string `json:"user_id" yaml:"user_id"`
+}

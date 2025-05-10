@@ -103,11 +103,8 @@ func main() {
 		logger.ProvideLogger(),
 		config.ProvideConfigService(),
 		fx.Provide(ProvideNATS),
-		fx.Provide(func(lc fx.Lifecycle, nc *nats.Conn, logger logger.Logger) *Worker {
-			logger.Debug(context.Background(), "Providing Worker")
-			return NewWorker(lc, "worker-2", "Worker2", nc, logger)
-		}),
-		fx.Invoke(func(worker *Worker, logger logger.Logger) {
+		fx.Provide(NewWorker),
+		fx.Invoke(func(w Worker, logger logger.Logger) {
 			logger.Debug(context.Background(), "Invoking Worker lifecycle")
 		}),
 		fx.Invoke(func(lc fx.Lifecycle, logger logger.Logger) {
@@ -122,13 +119,13 @@ func main() {
 				},
 			})
 		}),
-		fx.Invoke(func(logger logger.Logger) {
-			//if err := app.Err(); err != nil {
-			//	logger.Error(context.Background(), "Failed to initialize Fx app", "error", err)
-			//	return
-			//}
-		}),
 	)
+
+	if err := app.Err(); err != nil {
+		logger := logger.NewSlogLogger()
+		logger.Error(context.Background(), "Failed to initialize Fx app", "error", err)
+		return
+	}
 
 	app.Run()
 }

@@ -3,6 +3,8 @@ package dispatcher
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/songvi/robo/config"
+	"github.com/songvi/robo/job"
 	"github.com/songvi/robo/logger"
 )
 
@@ -26,6 +29,7 @@ type Dispatcher interface {
 	Publish(ctx context.Context, subject string, data []byte) error
 	Subscribe(ctx context.Context, subject string) (<-chan *nats.Msg, error)
 	GetActiveWorkers() []Worker
+	DispatchJob(ctx context.Context, job *job.Job) error
 }
 
 // dispatcherImpl is the implementation of the Dispatcher interface
@@ -79,6 +83,37 @@ func NewDispatcher(lc fx.Lifecycle, configService config.ConfigService, logger l
 	})
 
 	return d, nil
+}
+
+// DispatchJob sends a job to an active worker
+func (d *dispatcherImpl) DispatchJob(ctx context.Context, job *job.Job) error {
+	// Get active workers
+	workers := d.GetActiveWorkers()
+	if len(workers) == 0 {
+		d.logger.Error(ctx, "No active workers available to dispatch job", "job_uuid", job.UUID)
+		return fmt.Errorf("no active workers available")
+	}
+
+	// Select a worker randomly (modify for a different strategy if needed)
+	worker := workers[rand.Intn(len(workers))]
+	job.WorkerID = worker.UUID
+
+	// Serialize job to JSON
+	data, err := json.Marshal(job)
+	if err != nil {
+		d.logger.Error(ctx, "Failed to marshal job", "job_uuid", job.UUID, "error", err)
+		return fmt.Errorf("failed to marshal job: %w", err)
+	}
+
+	// Publish job to worker-specific subject
+	subject := fmt.Sprintf("dispatcher.job.%s", worker.UUID)
+	if err := d.Publish(ctx, subject, data); err != nil {
+		d.logger.Error(ctx, "Failed to dispatch job", "job_uuid", job.UUID, "worker_id", worker.UUID, "error", err)
+		return fmt.Errorf("failed to dispatch job: %w", err)
+	}
+
+	d.logger.Info(ctx, "Dispatched job to worker", "job_uuid", job.UUID, "worker_id", worker.UUID, "job_name", job.Name)
+	return nil
 }
 
 // startWorkerManagement sets up subscriptions for worker registration, heartbeats, and deregistration
@@ -249,6 +284,29 @@ func (d *dispatcherImpl) GetActiveWorkers() []Worker {
 	}
 	return workers
 }
+
+// func (d *dispatcherImpl) DispatchJob(ctx context.Context, job *job.Job) error {
+//     workers := d.GetActiveWorkers()
+//     if len(workers) == 0 {
+//         err := fmt.Errorf("no active workers available")
+//         d.logger.Error(ctx, "Failed to dispatch job", "job_uuid", job.UUID, "error", err)
+//         return err
+//     }
+//     worker := workers[rand.Intn(len(workers))]
+//     job.WorkerID = worker.UUID
+//     data, err := json.Marshal(job)
+//     if err != nil {
+//         d.logger.Error(ctx, "Failed to marshal job", "job_uuid", job.UUID, "error", err)
+//         return fmt.Errorf("failed to marshal job: %w", err)
+//     }
+//     subject := fmt.Sprintf("dispatcher.job.%s", worker.UUID)
+//     if err := d.Publish(ctx, subject, data); err != nil {
+//         d.logger.Error(ctx, "Failed to publish job", "job_uuid", job.UUID, "worker_id", worker.UUID, "subject", subject, "error", err)
+//         return fmt.Errorf("failed to publish job to worker %s: %w", worker.UUID, err)
+//     }
+//     d.logger.Info(ctx, "Job dispatched", "job_uuid", job.UUID, "worker_id", worker.UUID, "job_name", job.Name)
+//     return nil
+// }
 
 // Module defines the Fx module for the Dispatcher service
 var Module = fx.Module(
