@@ -1,5 +1,42 @@
 {
-    "broker": "nats://localhost:4222",
-    "generator": {},
-    "dsn": ""
+  "broker": "nats://localhost:4222",
+  "generator": {
+    "strategy": {
+      "file_strategy": {
+        "file_extension": [".txt", ".pdf", ".jpg"],
+        "file_extension_probability": [0.5, 0.3, 0.2],
+        "file_size": [1024, 2048, 4096],
+        "file_size_probability": [0.4, 0.4, 0.2],
+        "file_name_lang": ["en", "fr", "es"],
+        "file_name_probability": [0.6, 0.3, 0.1]
+      },
+      "user_strategy": {
+        "user_lang": ["en", "fr", "es"],
+        "lang_probability": [0.5, 0.3, 0.2]
+      },
+      "workspace_strategy": {
+        "number_of_users": [1, 2, 3],
+        "number_of_users_probability": [0.5, 0.3, 0.2]
+      }
+    },
+    "file_store": {
+      "FilePath": "/tmp/files"
+    },
+    "db_store": {
+      "FilePath": "/tmp/db"
+    },
+    "file_buffer": 100,
+    "user_buffer": 50,
+    "workspace_buffer": 20,
+    "db_config": {
+      "dsn": "file:.test/test.db?cache=shared&mode=rwc"
+    }
+  },
+  "dsn": "file:.test/test.db?cache=shared&mode=rwc",
+  "job_strategy": {
+    "cycle_duration": 3600,
+    "max_users": 10,
+    "max_files": 50,
+    "max_workspaces": 20
   }
+}

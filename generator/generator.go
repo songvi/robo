@@ -30,11 +30,6 @@ type generatorImpl struct {
 	cancelWorkers context.CancelFunc
 }
 
-// UserDBModel represents the user table in the database
-type UserDBModel struct {
-	UUID string `gorm:"primaryKey"`
-}
-
 // NewGenerator creates a new Generator instance with the provided config
 func NewGenerator(lc fx.Lifecycle, config GeneratorConfig) (Generator, error) {
 	// Initialize GORM database
@@ -141,10 +136,10 @@ func (g *generatorImpl) startWorkers(ctx context.Context) {
 				return
 			default:
 				// Fetch UUIDs from database
-				var users []UserDBModel
+				var users []models.User
 				// Get the maximum number of users needed based on WorkspaceStrategy
 				maxUsers := max(g.config.Strategy.WorkspaceStrategy.NumberOfUsers)
-				if err := g.db.Limit(maxUsers).Find(&users).Error; err != nil {
+				if err := g.db.Limit(maxUsers).Find(&models.User{}).Error; err != nil {
 					continue // Log error in production
 				}
 				if len(users) == 0 {

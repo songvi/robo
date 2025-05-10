@@ -2,18 +2,16 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"time"
 
-	"github.com/google/uuid"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 
 	"github.com/songvi/robo/config"
 	"github.com/songvi/robo/dispatcher"
 	"github.com/songvi/robo/generator"
+	"github.com/songvi/robo/job"
 	"github.com/songvi/robo/logger"
-	"github.com/songvi/robo/models"
+	"github.com/songvi/robo/store"
 )
 
 // CustomFxLogger adapts logger.Logger to fxevent.Logger
@@ -67,39 +65,41 @@ func main() {
 			return &CustomFxLogger{logger: logger}
 		}),
 		logger.ProvideLogger(),
-		config.ProvideConfigService(),
+		config.Module,
 		generator.Module,
 		dispatcher.Module,
-		fx.Invoke(func(d dispatcher.Dispatcher, logger logger.Logger) {
-			ctx := context.Background()
-			logger.Info(ctx, "Invoking Dispatcher lifecycle")
+		job.Module,
+		store.Module,
+		// fx.Invoke(func(d dispatcher.Dispatcher, logger logger.Logger) {
+		// 	ctx := context.Background()
+		// 	logger.Info(ctx, "Invoking Dispatcher lifecycle")
 
-			go func() {
-				time.Sleep(5 * time.Second) // Wait for worker to register
-				job := &models.Job{
-					UUID:      uuid.New().String(),
-					Name:      "test-job",
-					InputData: json.RawMessage(`{"task":"process_file"}`),
-					Status:    "pending",
-				}
-				// Retry up to 3 times
-				for attempt := 1; attempt <= 5; attempt++ {
-					workers := d.GetActiveWorkers()
-					logger.Debug(ctx, "Attempting to dispatch job", "job_uuid", job.UUID, "attempt", attempt, "active_workers", len(workers))
-					if err := d.DispatchJob(ctx, job); err != nil {
-						logger.Error(ctx, "Failed to dispatch test job", "job_uuid", job.UUID, "attempt", attempt, "error", err)
-						if attempt < 5 {
-							time.Sleep(2 * time.Second)
-							continue
-						}
-					} else {
-						logger.Info(ctx, "Test job dispatched successfully", "job_uuid", job.UUID)
-						break
-					}
-				}
-			}()
+		// 	go func() {
+		// 		time.Sleep(5 * time.Second) // Wait for worker to register
+		// 		job := &models.Job{
+		// 			UUID:      uuid.New().String(),
+		// 			Name:      "test-job",
+		// 			InputData: json.RawMessage(`{"task":"process_file"}`),
+		// 			Status:    "pending",
+		// 		}
+		// 		// Retry up to 3 times
+		// 		for attempt := 1; attempt <= 5; attempt++ {
+		// 			workers := d.GetActiveWorkers()
+		// 			logger.Debug(ctx, "Attempting to dispatch job", "job_uuid", job.UUID, "attempt", attempt, "active_workers", len(workers))
+		// 			if err := d.DispatchJob(ctx, job); err != nil {
+		// 				logger.Error(ctx, "Failed to dispatch test job", "job_uuid", job.UUID, "attempt", attempt, "error", err)
+		// 				if attempt < 5 {
+		// 					time.Sleep(2 * time.Second)
+		// 					continue
+		// 				}
+		// 			} else {
+		// 				logger.Info(ctx, "Test job dispatched successfully", "job_uuid", job.UUID)
+		// 				break
+		// 			}
+		// 		}
+		// 	}()
 
-		}),
+		// }),
 		fx.Invoke(func(lc fx.Lifecycle, logger logger.Logger) {
 			lc.Append(fx.Hook{
 				OnStart: func(ctx context.Context) error {

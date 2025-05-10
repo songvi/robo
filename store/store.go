@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"go.uber.org/fx"
 	"gorm.io/gorm"
 
@@ -55,6 +56,9 @@ func NewGORMStore(db *gorm.DB) *GORMStore {
 
 // CRUD methods for Job
 func (s *GORMStore) CreateJob(ctx context.Context, job *models.Job) error {
+	if job.UUID == "" {
+		job.UUID = uuid.New().String()
+	}
 	return s.db.WithContext(ctx).Create(job).Error
 }
 
@@ -80,12 +84,15 @@ func (s *GORMStore) GetJobsByStatus(ctx context.Context, status string, jobs *[]
 
 // CRUD methods for Worker
 func (s *GORMStore) CreateWorker(ctx context.Context, worker *models.Worker) error {
+	if worker.UUID == "" {
+		worker.UUID = uuid.New().String()
+	}
 	return s.db.WithContext(ctx).Create(worker).Error
 }
 
 func (s *GORMStore) GetWorker(ctx context.Context, id string) (*models.Worker, error) {
 	var worker models.Worker
-	if err := s.db.WithContext(ctx).First(&worker, "id = ?", id).Error; err != nil {
+	if err := s.db.WithContext(ctx).First(&worker, "uuid = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &worker, nil
@@ -96,17 +103,20 @@ func (s *GORMStore) UpdateWorker(ctx context.Context, worker *models.Worker) err
 }
 
 func (s *GORMStore) DeleteWorker(ctx context.Context, id string) error {
-	return s.db.WithContext(ctx).Delete(&models.Worker{}, "id = ?", id).Error
+	return s.db.WithContext(ctx).Delete(&models.Worker{}, "uuid = ?", id).Error
 }
 
 // CRUD methods for User
 func (s *GORMStore) CreateUser(ctx context.Context, user *models.User) error {
+	if user.UUID == "" {
+		user.UUID = uuid.New().String()
+	}
 	return s.db.WithContext(ctx).Create(user).Error
 }
 
 func (s *GORMStore) GetUser(ctx context.Context, id string) (*models.User, error) {
 	var user models.User
-	if err := s.db.WithContext(ctx).First(&user, "id = ?", id).Error; err != nil {
+	if err := s.db.WithContext(ctx).First(&user, "uuid = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -117,17 +127,20 @@ func (s *GORMStore) UpdateUser(ctx context.Context, user *models.User) error {
 }
 
 func (s *GORMStore) DeleteUser(ctx context.Context, id string) error {
-	return s.db.WithContext(ctx).Delete(&models.User{}, "id = ?", id).Error
+	return s.db.WithContext(ctx).Delete(&models.User{}, "uuid = ?", id).Error
 }
 
 // CRUD methods for File
 func (s *GORMStore) CreateFile(ctx context.Context, file *models.File) error {
+	if file.UUID == "" {
+		file.UUID = uuid.New().String()
+	}
 	return s.db.WithContext(ctx).Create(file).Error
 }
 
 func (s *GORMStore) GetFile(ctx context.Context, id string) (*models.File, error) {
 	var file models.File
-	if err := s.db.WithContext(ctx).First(&file, "id = ?", id).Error; err != nil {
+	if err := s.db.WithContext(ctx).First(&file, "uuid = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &file, nil
@@ -138,17 +151,23 @@ func (s *GORMStore) UpdateFile(ctx context.Context, file *models.File) error {
 }
 
 func (s *GORMStore) DeleteFile(ctx context.Context, id string) error {
-	return s.db.WithContext(ctx).Delete(&models.File{}, "id = ?", id).Error
+	return s.db.WithContext(ctx).Delete(&models.File{}, "uuid = ?", id).Error
 }
 
 // CRUD methods for Workspace
 func (s *GORMStore) CreateWorkspace(ctx context.Context, workspace *models.Workspace) error {
+	if workspace.UUID == "" {
+		workspace.UUID = uuid.New().String()
+	}
+	if workspace.Users == nil {
+		workspace.Users = []string{}
+	}
 	return s.db.WithContext(ctx).Create(workspace).Error
 }
 
 func (s *GORMStore) GetWorkspace(ctx context.Context, id string) (*models.Workspace, error) {
 	var workspace models.Workspace
-	if err := s.db.WithContext(ctx).First(&workspace, "id = ?", id).Error; err != nil {
+	if err := s.db.WithContext(ctx).First(&workspace, "uuid = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &workspace, nil
@@ -159,11 +178,14 @@ func (s *GORMStore) UpdateWorkspace(ctx context.Context, workspace *models.Works
 }
 
 func (s *GORMStore) DeleteWorkspace(ctx context.Context, id string) error {
-	return s.db.WithContext(ctx).Delete(&models.Workspace{}, "id = ?", id).Error
+	return s.db.WithContext(ctx).Delete(&models.Workspace{}, "uuid = ?", id).Error
 }
 
 // CRUD methods for Cycle
 func (s *GORMStore) CreateCycle(ctx context.Context, cycle *models.Cycle) error {
+	if cycle.UUID == "" {
+		cycle.UUID = uuid.New().String()
+	}
 	return s.db.WithContext(ctx).Create(cycle).Error
 }
 

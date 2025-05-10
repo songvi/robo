@@ -1,7 +1,6 @@
 package models
 
 type Worker struct {
-	// The name of the worker
-	Name string `json:"name" yaml:"name"`
-	UUID string `json:"uuid" yaml:"uuid"`
+	UUID string `json:"uuid" yaml:"uuid" gorm:"primaryKey;type:uuid;"`
+	Name string `json:"name" yaml:"name" gorm:"column:name;type:text;not null"`
 }

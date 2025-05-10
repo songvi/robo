@@ -8,12 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/songvi/robo/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/fx"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+
+	"github.com/songvi/robo/models"
 )
 
 func TestGenerator(t *testing.T) {
@@ -22,7 +23,7 @@ func TestGenerator(t *testing.T) {
 	require.NoError(t, err, "failed to open test database")
 
 	// Create users table and insert test UUIDs
-	err = db.AutoMigrate(&UserDBModel{})
+	err = db.AutoMigrate(&models.User{})
 	require.NoError(t, err, "failed to migrate user table")
 	testUUIDs := []string{
 		"550e8400-e29b-41d4-a716-446655440000",
@@ -32,7 +33,7 @@ func TestGenerator(t *testing.T) {
 		"9e107d9d-372b-4b1b-a8f7-0c7e2f0b1c2d",
 	}
 	for _, uuid := range testUUIDs {
-		db.Create(&UserDBModel{UUID: uuid})
+		db.Create(&models.User{UUID: uuid})
 	}
 
 	// Cleanup database after test

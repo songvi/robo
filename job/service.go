@@ -1,4 +1,4 @@
-package service
+package job
 
 import (
 	"context"
@@ -16,6 +16,11 @@ import (
 	"github.com/songvi/robo/store"
 )
 
+// JobServiceConfig defines the configuration for JobService
+type JobServiceConfig struct {
+	Strategy *models.Strategy `json:"strategy" yaml:"strategy"`
+}
+
 // JobService defines the interface for job management
 type JobService interface {
 	StartCycle(ctx context.Context, cycle models.Cycle) error
@@ -27,24 +32,53 @@ type jobServiceImpl struct {
 	store      store.Store
 	dispatcher dispatcher.Dispatcher
 	logger     logger.Logger
-	config     config.ConfigService
+	config     JobServiceConfig
 	generator  generator.Generator
 }
 
 // NewJobService creates a new JobService instance
 func NewJobService(
 	lc fx.Lifecycle,
-	config config.ConfigService,
+	configSvc config.ConfigService,
 	logger logger.Logger,
 	store store.Store,
 	dispatcher dispatcher.Dispatcher,
 	generator generator.Generator,
 ) JobService {
+	// Load config
+	cfg := configSvc.GetConfig()
+	var jobConfig JobServiceConfig
+	// Convert JobStrategy map to Strategy
+	if cfg.JobStrategy != nil {
+		data, err := json.Marshal(cfg.JobStrategy)
+		logger.Info(context.Background(), "JobStrategy loaded from config", "data", string(data))
+		if err != nil {
+			logger.Error(context.Background(), "Failed to marshal JobStrategy", "error", err)
+		} else {
+			var strategy models.Strategy
+			if err := json.Unmarshal(data, &strategy); err != nil {
+				logger.Error(context.Background(), "Failed to unmarshal JobStrategy to Strategy", "error", err)
+			} else {
+				jobConfig.Strategy = &strategy
+			}
+		}
+	}
+	// Use default strategy if not loaded
+	if jobConfig.Strategy == nil {
+		logger.Info(context.Background(), "Using default JobService strategy")
+		jobConfig.Strategy = &models.Strategy{
+			CycleDuration: 3600,
+			MaxUsers:      10,
+			MaxFiles:      50,
+			MaxWorkspaces: 20,
+		}
+	}
+
 	s := &jobServiceImpl{
 		store:      store,
 		dispatcher: dispatcher,
 		logger:     logger,
-		config:     config,
+		config:     jobConfig,
 		generator:  generator,
 	}
 
@@ -70,6 +104,10 @@ func (s *jobServiceImpl) StartCycle(ctx context.Context, cycle models.Cycle) err
 	cycle.UUID = uuid.New().String()
 	cycle.StartedAt = time.Now().Unix()
 	cycle.Status = "running"
+	// Use strategy from config if not provided
+	if cycle.Strategy == nil {
+		cycle.Strategy = s.config.Strategy
+	}
 
 	// Save cycle to database
 	if err := s.store.CreateCycle(ctx, &cycle); err != nil {
@@ -120,8 +158,8 @@ func (s *jobServiceImpl) StartCycle(ctx context.Context, cycle models.Cycle) err
 func (s *jobServiceImpl) generateSessionJobs(ctx context.Context, cycle models.Cycle, session models.Session) ([]models.Job, error) {
 	var jobs []models.Job
 	actions := []string{
-		"create_user", "update_user", "delete_user",
-		"create_workspace", "update_workspace", "delete_workspace",
+		"create_user",
+		"create_workspace",
 		"upload_file", "download_file", "consult_file",
 	}
 
@@ -215,70 +253,6 @@ func (s *jobServiceImpl) ProcessJobs(ctx context.Context) error {
 	}
 }
 
-// // checkCycleCompletion checks if all jobs in a cycle are complete
-// func (s *jobServiceImpl) ProcessJobs(ctx context.Context) error {
-// 	ticker := time.NewTicker(10 * time.Second)
-// 	defer ticker.Stop()
-
-// 	for {
-// 		select {
-// 		case <-ctx.Done():
-// 			return nil
-// 		case <-ticker.C:
-// 			// Fetch pending jobs
-// 			var jobs []models.Job
-// 			if err := s.store.GetJobsByStatus(ctx, "pending", &jobs); err != nil {
-// 				s.logger.Error(ctx, "Failed to fetch pending jobs", "error", err)
-// 				continue
-// 			}
-
-// 			for _, job := range jobs {
-// 				// Dispatch job
-// 				if err := s.dispatcher.DispatchJob(ctx, &job); err != nil {
-// 					s.logger.Error(ctx, "Failed to dispatch job", "job_uuid", job.UUID, "error", err)
-// 					continue
-// 				}
-
-// 				// Update job status
-// 				job.Status = "dispatched"
-// 				if err := s.store.UpdateJob(ctx, &job); err != nil {
-// 					s.logger.Error(ctx, "Failed to update job status", "job_uuid", job.UUID, "error", err)
-// 					continue
-// 				}
-// 			}
-
-// 			// Process job results
-// 			resultCh, err := s.dispatcher.Subscribe(ctx, "dispatcher.job.result")
-// 			if err != nil {
-// 				s.logger.Error(ctx, "Failed to subscribe to job results", "error", err)
-// 				continue
-// 			}
-// 			go func() {
-// 				for msg := range resultCh {
-// 					var job models.Job
-// 					if err := json.Unmarshal(msg.Data, &job); err != nil {
-// 						s.logger.Error(ctx, "Failed to unmarshal job result", "error", err)
-// 						continue
-// 					}
-
-// 					// Update job result in database
-// 					if err := s.store.UpdateJob(ctx, &job); err != nil {
-// 						s.logger.Error(ctx, "Failed to save job result", "job_uuid", job.UUID, "error", err)
-// 						continue
-// 					}
-
-// 					s.logger.Info(ctx, "Job result processed", "job_uuid", job.UUID, "status", job.Status)
-
-// 					// Check if cycle is complete
-// 					if err := s.checkCycleCompletion(ctx, job.CycleUUID); err != nil {
-// 						s.logger.Error(ctx, "Failed to check cycle completion", "cycle_uuid", job.CycleUUID, "error", err)
-// 					}
-// 				}
-// 			}()
-// 		}
-// 	}
-// }
-
 // checkCycleCompletion checks if all jobs in a cycle are complete
 func (s *jobServiceImpl) checkCycleCompletion(ctx context.Context, cycleUUID string) error {
 	var pendingJobs []models.Job
@@ -307,13 +281,15 @@ func (s *jobServiceImpl) checkCycleCompletion(ctx context.Context, cycleUUID str
 }
 
 // Module defines the Fx module for the JobService
-func Module(lc fx.Lifecycle, config config.ConfigService, logger logger.Logger, store store.Store, dispatcher dispatcher.Dispatcher, generator generator.Generator) fx.Option {
-	return fx.Module(
-		"service",
-		fx.Provide(NewJobService),
-		fx.Invoke(func(s JobService) {
-			// Ensure JobService is instantiated
-			logger.Info(context.Background(), "JobService module initialized")
-		}),
-	)
-}
+var Module = fx.Module(
+	"job",
+	fx.Provide(NewJobService),
+	fx.Invoke(func(s JobService) {
+		// Ensure JobService is instantiated
+		//logger.Logger.Info(context.Background(), "JobService module initialized")
+	}),
+)
+
+// func ProvideJobService() fx.Option {
+// 	return fx.Provide(NewJobService)
+// }

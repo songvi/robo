@@ -101,7 +101,7 @@ func main() {
 			return &CustomFxLogger{logger: logger}
 		}),
 		logger.ProvideLogger(),
-		config.ProvideConfigService(),
+		config.Module,
 		fx.Provide(ProvideNATS),
 		fx.Provide(NewWorker),
 		fx.Invoke(func(w Worker, logger logger.Logger) {
