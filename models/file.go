@@ -1,8 +1,10 @@
-package file
+package models
 
 type File struct {
 	// The name of the file
-	Name string `json:"name" yaml:"name"`
+	Name      string `json:"name" yaml:"name"`
+	CycleID   string `json:"cycle_id" yaml:"cycle_id"`
+	SessionID string `json:"session_id" yaml:"session_id"`
 	// The description of the file
 	Description string `json:"description" yaml:"description"`
 	// The file extension
@@ -11,6 +13,5 @@ type File struct {
 	FileSize int `json:"file_size" yaml:"file_size"`
 	// The file content
 	FileContent string `json:"file_content" yaml:"file_content"`
-	// // The file path
-	// FilePath string `json:"file_path" yaml:"file_path"`
+	WorkspaceID string `json:"workspace_id" yaml:"workspace_id"`
 }

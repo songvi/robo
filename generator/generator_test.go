@@ -8,15 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/songvi/robo/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/fx"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-
-	"github.com/songvi/robo/generator/file"
-	"github.com/songvi/robo/generator/user"
-	"github.com/songvi/robo/generator/workspace"
 )
 
 func TestGenerator(t *testing.T) {
@@ -54,11 +51,11 @@ func TestGenerator(t *testing.T) {
 	// Define test config
 	config := GeneratorConfig{
 		Strategy: Strategy{
-			UserStrategy: user.UserStrategy{
+			UserStrategy: models.UserStrategy{
 				UserLang:        []string{"en", "fr"},
 				LangProbability: []float64{0.5, 0.3},
 			},
-			FileStrategy: file.FileStrategy{
+			FileStrategy: models.FileStrategy{
 				FileExtension:            []string{"txt", "jpeg", "bin"},
 				FileExtensionProbability: []float64{0.1, 0.3, 0.6},
 				FileSize:                 []int{1024, 1048576},
@@ -66,7 +63,7 @@ func TestGenerator(t *testing.T) {
 				FileLang:                 []string{"en", "fr"},
 				FileLangNameProbability:  []float64{0.5, 0.3},
 			},
-			WorkspaceStrategy: workspace.WorkspaceStrategy{
+			WorkspaceStrategy: models.WorkspaceStrategy{
 				NumberOfUsers:            []int{2, 3},
 				NumberOfUsersProbability: []float64{0.6, 0.4},
 			},

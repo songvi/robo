@@ -1,4 +1,4 @@
-package job
+package models
 
 import "encoding/json"
 
@@ -15,4 +15,7 @@ type Job struct {
 	DoneAt  int64  `json:"done_at" yaml:"done_at"`
 	// The status of the job
 	Status string `json:"status" yaml:"status"`
+
+	CycleUUID string `json:"cycle_uuid" yaml:"cycle_uuid"`
+	SessionID string `json:"session_id" yaml:"session_id"`
 }

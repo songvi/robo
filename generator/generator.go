@@ -9,25 +9,23 @@ import (
 	"gorm.io/driver/sqlite" // Example driver; replace with your database driver
 	"gorm.io/gorm"
 
-	"github.com/songvi/robo/generator/file"
-	"github.com/songvi/robo/generator/user"
-	"github.com/songvi/robo/generator/workspace"
+	"github.com/songvi/robo/models"
 )
 
 // Generator defines the interface for the generator service
 type Generator interface {
-	Users(ctx context.Context) <-chan user.User
-	Files(ctx context.Context) <-chan file.File
-	Workspaces(ctx context.Context) <-chan workspace.Workspace
+	Users(ctx context.Context) <-chan models.User
+	Files(ctx context.Context) <-chan models.File
+	Workspaces(ctx context.Context) <-chan models.Workspace
 }
 
 // generatorImpl is the implementation of the Generator interface
 type generatorImpl struct {
 	config        GeneratorConfig
 	db            *gorm.DB
-	userCh        chan user.User
-	fileCh        chan file.File
-	workspaceCh   chan workspace.Workspace
+	userCh        chan models.User
+	fileCh        chan models.File
+	workspaceCh   chan models.Workspace
 	wg            sync.WaitGroup
 	cancelWorkers context.CancelFunc
 }
@@ -62,9 +60,9 @@ func NewGenerator(lc fx.Lifecycle, config GeneratorConfig) (Generator, error) {
 	g := &generatorImpl{
 		config:      config,
 		db:          db,
-		userCh:      make(chan user.User, userBuffer),
-		fileCh:      make(chan file.File, fileBuffer),
-		workspaceCh: make(chan workspace.Workspace, workspaceBuffer),
+		userCh:      make(chan models.User, userBuffer),
+		fileCh:      make(chan models.File, fileBuffer),
+		workspaceCh: make(chan models.Workspace, workspaceBuffer),
 	}
 
 	// Create a context for worker cancellation
@@ -201,17 +199,17 @@ func (g *generatorImpl) stopWorkers() {
 }
 
 // Users returns a channel of generated users
-func (g *generatorImpl) Users(ctx context.Context) <-chan user.User {
+func (g *generatorImpl) Users(ctx context.Context) <-chan models.User {
 	return g.userCh
 }
 
 // Files returns a channel of generated files
-func (g *generatorImpl) Files(ctx context.Context) <-chan file.File {
+func (g *generatorImpl) Files(ctx context.Context) <-chan models.File {
 	return g.fileCh
 }
 
 // Workspaces returns a channel of generated workspaces
-func (g *generatorImpl) Workspaces(ctx context.Context) <-chan workspace.Workspace {
+func (g *generatorImpl) Workspaces(ctx context.Context) <-chan models.Workspace {
 	return g.workspaceCh
 }
 

@@ -7,22 +7,23 @@ import (
 	"time"
 
 	"github.com/songvi/robo/generator/file"
+	"github.com/songvi/robo/models"
 )
 
 // GenerateFile creates It creates a new file based on the FileStrategy configuration
-func GenerateFile(strategy file.FileStrategy, repositoryPath string) (file.File, error) {
+func GenerateFile(strategy models.FileStrategy, repositoryPath string) (models.File, error) {
 	rand.Seed(time.Now().UnixNano())
 
 	// Validate strategy
 	if len(strategy.FileExtension) == 0 || len(strategy.FileExtensionProbability) == 0 ||
 		len(strategy.FileSize) == 0 || len(strategy.FileSizeProbability) == 0 ||
 		len(strategy.FileLang) == 0 || len(strategy.FileLangNameProbability) == 0 {
-		return file.File{}, fmt.Errorf("invalid FileStrategy: one or more required fields are empty")
+		return models.File{}, fmt.Errorf("invalid FileStrategy: one or more required fields are empty")
 	}
 	if len(strategy.FileExtension) != len(strategy.FileExtensionProbability) ||
 		len(strategy.FileSize) != len(strategy.FileSizeProbability) ||
 		len(strategy.FileLang) != len(strategy.FileLangNameProbability) {
-		return file.File{}, fmt.Errorf("invalid FileStrategy: field lengths do not match their corresponding probabilities")
+		return models.File{}, fmt.Errorf("invalid FileStrategy: field lengths do not match their corresponding probabilities")
 	}
 
 	// Select file extension based on probability
@@ -44,7 +45,7 @@ func GenerateFile(strategy file.FileStrategy, repositoryPath string) (file.File,
 	// filePath := filepath.Join("files", fmt.Sprintf("%s.%s", fileName, fileExtension))
 
 	// Create file struct
-	generatedFile := file.File{
+	generatedFile := models.File{
 		Name:          fileName,
 		Description:   fmt.Sprintf("Generated %s file in %s", fileExtension, fileLang),
 		FileExtension: fileExtension,
@@ -55,7 +56,7 @@ func GenerateFile(strategy file.FileStrategy, repositoryPath string) (file.File,
 	// Generate file content
 	contentGenerator := file.NewFileContentGenerator(repositoryPath)
 	if err := contentGenerator.GenerateContent(&generatedFile, fileLang); err != nil {
-		return file.File{}, fmt.Errorf("failed to generate file content: %v", err)
+		return models.File{}, fmt.Errorf("failed to generate file content: %v", err)
 	}
 
 	return generatedFile, nil

@@ -1,4 +1,4 @@
-package dispatcher
+package models
 
 type Strategy struct {
 	CycleDuration int `json:"cycle_duration" yaml:"cycle_duration"`

@@ -1,4 +1,4 @@
-package user
+package models
 
 type UserStrategy struct {
 	UserLang        []string  `json:"user_lang" yaml:"user_lang"`

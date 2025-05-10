@@ -1,4 +1,4 @@
-package dispatcher
+package models
 
 type Worker struct {
 	// The name of the worker

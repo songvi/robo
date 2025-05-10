@@ -5,15 +5,16 @@ import (
 	"math/rand"
 
 	"github.com/songvi/robo/generator/user"
+	"github.com/songvi/robo/models"
 )
 
 // GenerateUser creates a new user based on the UserStrategy configuration
-func GenerateUser(strategy user.UserStrategy) (user.User, error) {
+func GenerateUser(strategy models.UserStrategy) (models.User, error) {
 	if len(strategy.UserLang) == 0 || len(strategy.LangProbability) == 0 {
-		return user.User{}, fmt.Errorf("invalid UserStrategy: user_lang or lang_probability is empty")
+		return models.User{}, fmt.Errorf("invalid UserStrategy: user_lang or lang_probability is empty")
 	}
 	if len(strategy.UserLang) != len(strategy.LangProbability) {
-		return user.User{}, fmt.Errorf("invalid UserStrategy: user_lang and lang_probability lengths do not match")
+		return models.User{}, fmt.Errorf("invalid UserStrategy: user_lang and lang_probability lengths do not match")
 	}
 
 	// Select language based on probability distribution
@@ -24,7 +25,7 @@ func GenerateUser(strategy user.UserStrategy) (user.User, error) {
 	displayName := user.GenerateDisplayName(strategy)
 	username := generateRandomUserName(6, 12)
 
-	return user.User{
+	return models.User{
 		DisplayName: displayName,
 		UserName:    username,
 		Language:    language,

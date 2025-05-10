@@ -12,8 +12,8 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/songvi/robo/config"
-	"github.com/songvi/robo/job"
 	"github.com/songvi/robo/logger"
+	"github.com/songvi/robo/models"
 )
 
 // WorkerRegistrationMessage defines the structure of worker registration messages
@@ -28,15 +28,15 @@ type WorkerRegistrationMessage struct {
 type Dispatcher interface {
 	Publish(ctx context.Context, subject string, data []byte) error
 	Subscribe(ctx context.Context, subject string) (<-chan *nats.Msg, error)
-	GetActiveWorkers() []Worker
-	DispatchJob(ctx context.Context, job *job.Job) error
+	GetActiveWorkers() []models.Worker
+	DispatchJob(ctx context.Context, job *models.Job) error
 }
 
 // dispatcherImpl is the implementation of the Dispatcher interface
 type dispatcherImpl struct {
 	nc            *nats.Conn
 	logger        logger.Logger
-	workers       map[string]Worker
+	workers       map[string]models.Worker
 	workerMu      sync.RWMutex
 	lastHeartbeat map[string]time.Time
 	heartbeatMu   sync.RWMutex
@@ -60,7 +60,7 @@ func NewDispatcher(lc fx.Lifecycle, configService config.ConfigService, logger l
 	d := &dispatcherImpl{
 		nc:            nc,
 		logger:        logger,
-		workers:       make(map[string]Worker),
+		workers:       make(map[string]models.Worker),
 		lastHeartbeat: make(map[string]time.Time),
 	}
 
@@ -86,7 +86,7 @@ func NewDispatcher(lc fx.Lifecycle, configService config.ConfigService, logger l
 }
 
 // DispatchJob sends a job to an active worker
-func (d *dispatcherImpl) DispatchJob(ctx context.Context, job *job.Job) error {
+func (d *dispatcherImpl) DispatchJob(ctx context.Context, job *models.Job) error {
 	// Get active workers
 	workers := d.GetActiveWorkers()
 	if len(workers) == 0 {
@@ -157,7 +157,7 @@ func (d *dispatcherImpl) handleRegistrations(ctx context.Context, regCh <-chan *
 			continue
 		}
 
-		worker := Worker{
+		worker := models.Worker{
 			Name: regMsg.Name,
 			UUID: regMsg.WorkerID,
 		}
@@ -275,38 +275,15 @@ func (d *dispatcherImpl) Subscribe(ctx context.Context, subject string) (<-chan 
 }
 
 // GetActiveWorkers returns the list of active workers
-func (d *dispatcherImpl) GetActiveWorkers() []Worker {
+func (d *dispatcherImpl) GetActiveWorkers() []models.Worker {
 	d.workerMu.RLock()
 	defer d.workerMu.RUnlock()
-	workers := make([]Worker, 0, len(d.workers))
+	workers := make([]models.Worker, 0, len(d.workers))
 	for _, w := range d.workers {
 		workers = append(workers, w)
 	}
 	return workers
 }
-
-// func (d *dispatcherImpl) DispatchJob(ctx context.Context, job *job.Job) error {
-//     workers := d.GetActiveWorkers()
-//     if len(workers) == 0 {
-//         err := fmt.Errorf("no active workers available")
-//         d.logger.Error(ctx, "Failed to dispatch job", "job_uuid", job.UUID, "error", err)
-//         return err
-//     }
-//     worker := workers[rand.Intn(len(workers))]
-//     job.WorkerID = worker.UUID
-//     data, err := json.Marshal(job)
-//     if err != nil {
-//         d.logger.Error(ctx, "Failed to marshal job", "job_uuid", job.UUID, "error", err)
-//         return fmt.Errorf("failed to marshal job: %w", err)
-//     }
-//     subject := fmt.Sprintf("dispatcher.job.%s", worker.UUID)
-//     if err := d.Publish(ctx, subject, data); err != nil {
-//         d.logger.Error(ctx, "Failed to publish job", "job_uuid", job.UUID, "worker_id", worker.UUID, "subject", subject, "error", err)
-//         return fmt.Errorf("failed to publish job to worker %s: %w", worker.UUID, err)
-//     }
-//     d.logger.Info(ctx, "Job dispatched", "job_uuid", job.UUID, "worker_id", worker.UUID, "job_name", job.Name)
-//     return nil
-// }
 
 // Module defines the Fx module for the Dispatcher service
 var Module = fx.Module(

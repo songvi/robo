@@ -1,9 +1,7 @@
 package generator
 
 import (
-	"github.com/songvi/robo/generator/file"
-	"github.com/songvi/robo/generator/user"
-	"github.com/songvi/robo/generator/workspace"
+	"github.com/songvi/robo/models"
 )
 
 type GeneratorConfig struct {
@@ -21,9 +19,9 @@ type DBConfig struct {
 	DSN string `json:"dsn" yaml:"dsn"` // Data Source Name for database connection
 }
 type Strategy struct {
-	FileStrategy      file.FileStrategy           `json:"file_strategy" yaml:"file_strategy"`
-	UserStrategy      user.UserStrategy           `json:"user_strategy" yaml:"user_strategy"`
-	WorkspaceStrategy workspace.WorkspaceStrategy `json:"workspace_strategy" yaml:"workspace_strategy"`
+	FileStrategy      models.FileStrategy      `json:"file_strategy" yaml:"file_strategy"`
+	UserStrategy      models.UserStrategy      `json:"user_strategy" yaml:"user_strategy"`
+	WorkspaceStrategy models.WorkspaceStrategy `json:"workspace_strategy" yaml:"workspace_strategy"`
 }
 
 type FileStore struct {

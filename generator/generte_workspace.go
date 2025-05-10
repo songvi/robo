@@ -5,24 +5,24 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/songvi/robo/generator/workspace"
+	"github.com/songvi/robo/models"
 )
 
 // GenerateWorkspace creates a new workspace with a randomly selected list of user UUIDs based on the WorkspaceStrategy
-func GenerateWorkspace(wsStrategy workspace.WorkspaceStrategy, availableUserUUIDs []string) (workspace.Workspace, error) {
+func GenerateWorkspace(wsStrategy models.WorkspaceStrategy, availableUserUUIDs []string) (models.Workspace, error) {
 	rand.Seed(time.Now().UnixNano())
 
 	// Validate WorkspaceStrategy
 	if len(wsStrategy.NumberOfUsers) == 0 || len(wsStrategy.NumberOfUsersProbability) == 0 {
-		return workspace.Workspace{}, fmt.Errorf("invalid WorkspaceStrategy: number_of_users or number_of_users_probability is empty")
+		return models.Workspace{}, fmt.Errorf("invalid WorkspaceStrategy: number_of_users or number_of_users_probability is empty")
 	}
 	if len(wsStrategy.NumberOfUsers) != len(wsStrategy.NumberOfUsersProbability) {
-		return workspace.Workspace{}, fmt.Errorf("invalid WorkspaceStrategy: number_of_users and number_of_users_probability lengths do not match")
+		return models.Workspace{}, fmt.Errorf("invalid WorkspaceStrategy: number_of_users and number_of_users_probability lengths do not match")
 	}
 
 	// Validate availableUserUUIDs
 	if len(availableUserUUIDs) == 0 {
-		return workspace.Workspace{}, fmt.Errorf("no available user UUIDs provided")
+		return models.Workspace{}, fmt.Errorf("no available user UUIDs provided")
 	}
 
 	// Select number of users based on probability
@@ -47,7 +47,7 @@ func GenerateWorkspace(wsStrategy workspace.WorkspaceStrategy, availableUserUUID
 	// Generate workspace name
 	workspaceName := generateWspRandomName(8, 16)
 
-	return workspace.Workspace{
+	return models.Workspace{
 		Name:  workspaceName,
 		Users: selectedUUIDs,
 	}, nil

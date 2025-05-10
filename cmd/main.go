@@ -12,8 +12,8 @@ import (
 	"github.com/songvi/robo/config"
 	"github.com/songvi/robo/dispatcher"
 	"github.com/songvi/robo/generator"
-	"github.com/songvi/robo/job"
 	"github.com/songvi/robo/logger"
+	"github.com/songvi/robo/models"
 )
 
 // CustomFxLogger adapts logger.Logger to fxevent.Logger
@@ -76,7 +76,7 @@ func main() {
 
 			go func() {
 				time.Sleep(5 * time.Second) // Wait for worker to register
-				job := &job.Job{
+				job := &models.Job{
 					UUID:      uuid.New().String(),
 					Name:      "test-job",
 					InputData: json.RawMessage(`{"task":"process_file"}`),

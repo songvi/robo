@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/jung-kurt/gofpdf"
+	"github.com/songvi/robo/models"
 	"github.com/unidoc/unioffice/document"
 	"github.com/xuri/excelize/v2"
 )
@@ -165,7 +166,7 @@ func generateSentence(lang string) string {
 }
 
 // GenerateContent generates file content and saves it to the repository
-func (g *FileContentGenerator) GenerateContent(file *File, lang string) error {
+func (g *FileContentGenerator) GenerateContent(file *models.File, lang string) error {
 	rand.Seed(time.Now().UnixNano())
 
 	// Create the full file path in the repository

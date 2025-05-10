@@ -1,4 +1,4 @@
-package file
+package models
 
 type FileStrategy struct {
 	FileExtension            []string  `json:"file_extension" yaml:"file_extension"`
